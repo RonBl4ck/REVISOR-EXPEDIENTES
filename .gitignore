@@ -1,35 +1,61 @@
 # Credenciales y Secretos
 .env
 credentials.json
+token.json
+secrets.toml
+secret.toml
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/secret.toml
+
+# Bases de datos y archivos temporales
+*.sqlite3
+*.db
+*.log
+*.bak
+*.tmp
 
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
-env/
-venv/
-pip-log.txt
-pip-delete-this-directory.txt
-.venv/
-bin/
 build/
 develop-eggs/
 dist/
+downloads/
 eggs/
+.eggs/
 lib/
 lib64/
 parts/
 sdist/
 var/
+wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Streamlit
-.streamlit/
+# Entornos virtuales y de empaquetado
+venv/
+.venv/
+env/
+.env/
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Sistema
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Sistema Operativo
 .DS_Store
 Thumbs.db

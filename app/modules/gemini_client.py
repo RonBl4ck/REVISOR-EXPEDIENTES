@@ -13,13 +13,15 @@ MODEL_ID = "gemini-2.5-flash"
 
 class GeminiClient:
     def __init__(self, api_key=None):
-        # Primero busca en st.secrets (Nube), luego en env (Local)
-        resolved_key = api_key or st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        # Prioridad: Llave del usuario > st.secrets (Nube) > .env (Local)
+        raw_key = (api_key or "").strip()
+        resolved_key = raw_key or st.secrets.get("GOOGLE_API_KEY", "").strip() or (os.getenv("GOOGLE_API_KEY") or "").strip()
         
         if not resolved_key:
-            raise ValueError("Error: GOOGLE_API_KEY no encontrada en .env ni en st.secrets")
+            raise ValueError("Error: GOOGLE_API_KEY no encontrada. Ingresa tu llave en el sidebar, en st.secrets o en .env")
         
         self.client = genai.Client(api_key=resolved_key)
+        self._using_personal_key = bool(raw_key)
 
     def analyze_chunk(self, chunk_text, active_rules=None):
         """

@@ -4,7 +4,7 @@ import re
 PATTERNS = {
     # MODULO 1: EXTRACCIÓN DE DATOS CLAVE
     "titulo_tension": r"(?i)(\d+\s*kV).*(?:\(operación inicial en (\d+\s*kV)\))?",
-    "potencia": r"(?i)(\d+(?:\.\d+)?)\s*(kVA|KVA)",
+    "potencia": r"(?i)(\d{1,3}(?:[,\.]\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)\s*(kVA|KVA)",
     "frecuencia": r"(?i)60\s*Hz",
     "grupo_conexion": r"(?i)dyn5",
     "profesionales": r"(?i)(Ingeniero\s+(?:Civil|Eléctrico|Electricista|Mecánico\s+Eléctrico))\s*,?\s*CIP\s*[:#]?\s*(\d+)?\s*,?\s*([A-ZáéíóúÁÉÍÓÚ\s]+)",

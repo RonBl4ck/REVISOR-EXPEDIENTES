@@ -23,16 +23,29 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Inicializar clientes
+# Inicializar cliente de Sheets (independiente de Gemini)
 try:
     sheets = SheetsClient()
-    gemini = GeminiClient()
 except Exception as e:
-    st.error(f"Error de inicialización de credenciales: {e}")
+    st.error(f"Error de inicialización de Google Sheets: {e}")
     st.stop()
 
 # --- SIDEBAR (Persistencia y Ajustes) ---
 st.sidebar.title("🛠️ Configuración")
+
+# Campo de API Key personal (tipo password para seguridad)
+st.sidebar.markdown("---")
+st.sidebar.subheader("🔑 API de Gemini")
+user_api_key = st.sidebar.text_input(
+    "Tu API Key personal (opcional)",
+    type="password",
+    value=st.session_state.get('user_api_key', ''),
+    help="Cada ingeniero puede usar su propia llave de Google AI Studio. Si lo dejas vacío, se usará la llave de la empresa."
+)
+if user_api_key:
+    st.session_state['user_api_key'] = user_api_key
+
+st.sidebar.markdown("---")
 ov = st.sidebar.text_input("OV (Llave Primaria)", value=st.session_state.get('ov', ''), help="Obligatorio")
 atc = st.sidebar.text_input("ATC", value=st.session_state.get('atc', ''), help="Cambia en cada revisión")
 revision = st.sidebar.number_input("N° de Revisión", min_value=1, step=1, value=st.session_state.get('revision', 1))
@@ -40,6 +53,18 @@ revision = st.sidebar.number_input("N° de Revisión", min_value=1, step=1, valu
 if ov: st.session_state['ov'] = ov
 if atc: st.session_state['atc'] = atc
 st.session_state['revision'] = revision
+
+# Inicializar cliente de Gemini (usa llave personal si existe, sino la de la empresa)
+try:
+    gemini = GeminiClient(api_key=st.session_state.get('user_api_key', ''))
+    if gemini._using_personal_key:
+        st.sidebar.success("✅ Usando tu llave personal")
+    else:
+        st.sidebar.info("ℹ️ Usando llave de la empresa")
+except Exception as e:
+    st.error(f"Error de inicialización de Gemini: {e}")
+    st.stop()
+
 
 # --- PANTALLA PRINCIPAL ---
 st.title("⚡ Asistente Revisor de Expedientes Técnicos")
@@ -54,15 +79,21 @@ with col1:
     if uploaded_file and ov and atc:
         if st.button("🚀 Iniciar Análisis"):
             with st.spinner("Procesando PDF..."):
+                print("[DEBUG] Iniciando procesamiento...")
                 # PASO 2 - Preprocesamiento
                 pdf_bytes = uploaded_file.getvalue()
                 pdf_hash = get_pdf_hash(pdf_bytes)
+                print(f"[DEBUG] Hash calculado: {pdf_hash}")
+                print("[DEBUG] Extrayendo texto del PDF...")
                 pages_content = extract_text_from_pdf(io.BytesIO(pdf_bytes))
+                print(f"[DEBUG] Texto extraído de {len(pages_content)} páginas")
                 st.session_state['pages_content'] = pages_content
                 st.session_state['current_pdf_hash'] = pdf_hash
                 
                 # Check Cache
+                print("[DEBUG] Verificando caché en Sheets...")
                 cached_result = sheets.check_cache(pdf_hash, ANALYSIS_CACHE_VERSION)
+                print(f"[DEBUG] Caché encontrado: {bool(cached_result)}")
                 if cached_result:
                     st.success("✅ Documento encontrado en caché. Cargando resultados...")
                     st.session_state['observations'] = cached_result['observations']
@@ -73,13 +104,17 @@ with col1:
                     analyzer = Analyzer(pages_content)
                     obs_regex, marked_pages = analyzer.analyze_all()
                     
-                    # Gemini Analysis (Chunks)
+                    # Gemini Analysis (Una sola petición consolidada para respetar Free Tier)
                     active_rules = sheets.get_active_rules()
                     chunks = create_suspicious_chunks(pages_content, marked_pages)
                     
+                    # Consolidar TODOS los chunks en un solo texto grande
+                    consolidated_text = "\n\n".join([chunk['text'] for chunk in chunks])
+                    print(f"[DEBUG] Enviando {len(chunks)} chunks como 1 sola petición ({len(consolidated_text)} chars)...")
+                    
                     obs_gemini = []
-                    for chunk in chunks:
-                        g_results = gemini.analyze_chunk(chunk['text'], active_rules)
+                    if consolidated_text.strip():
+                        g_results = gemini.analyze_chunk(consolidated_text, active_rules)
                         for r in g_results:
                             obs_gemini.append({
                                 "tipo_obs": r.get('tipo', 'INCOHERENCIA'),
@@ -146,11 +181,11 @@ with col2:
         
         with tab_alerts:
             alerts = [o for o in st.session_state['observations'] if o['tipo_obs'] in ['INCOHERENCIA', 'ALERTA ROJA']]
-            for a in alerts:
+            for i, a in enumerate(alerts):
                 with st.expander(f"⚠️ {a['descripcion'][:60]}... (Pág. {a['pagina']})"):
                     st.write(f"**Detalle:** {a['descripcion']}")
                     st.write(f"**Cita:** `{a['cita']}`")
-                    if st.button("📋 Copiar comentario", key=f"copy_{a['cita']}"):
+                    if st.button("📋 Copiar comentario", key=f"copy_btn_{i}_{a['pagina']}"):
                         st.info("Texto copiado al portapapeles (Simulado)")
 
         with tab_data:
