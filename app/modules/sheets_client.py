@@ -1,8 +1,7 @@
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import os
 import pandas as pd
 from datetime import datetime
+import streamlit as st
 
 class SheetsClient:
     def __init__(self, spreadsheet_name="Asistente Revisor Expedientes"):
@@ -13,10 +12,18 @@ class SheetsClient:
         self.sh = self.client.open(spreadsheet_name)
 
     def _authenticate(self):
-        if not os.path.exists(self.creds_path):
-            raise FileNotFoundError("Error: 'credentials.json' no encontrado.")
-        creds = ServiceAccountCredentials.from_json_keyfile_name(self.creds_path, self.scope)
-        return gspread.authorize(creds)
+        # 1. Intentar cargar desde st.secrets (Nube)
+        if "gcp_service_account" in st.secrets:
+            creds_dict = dict(st.secrets["gcp_service_account"])
+            # Asegurarse de que la private_key se parsee correctamente si es que tiene saltos de línea literales \n
+            creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+            return gspread.service_account_from_dict(creds_dict)
+            
+        # 2. Intentar cargar desde archivo local (Local)
+        if os.path.exists(self.creds_path):
+            return gspread.service_account(filename=self.creds_path)
+            
+        raise FileNotFoundError("Error: No se encontró 'credentials.json' ni el secreto 'gcp_service_account'")
 
     def get_history(self, ov):
         """Obtiene el historial de revisiones para un OV específico."""

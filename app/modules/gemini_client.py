@@ -1,17 +1,16 @@
-import google.generativeai as genai
-import os
-import json
-from dotenv import load_dotenv
 from utils.text_helpers import estimate_tokens
+import streamlit as st
 
 # Load env
 load_dotenv()
 
 class GeminiClient:
     def __init__(self, api_key=None):
-        self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
+        # Primero busca en st.secrets (Nube), luego en env (Local)
+        self.api_key = api_key or st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        
         if not self.api_key:
-            raise ValueError("Error: GOOGLE_API_KEY no encontrada en .env")
+            raise ValueError("Error: GOOGLE_API_KEY no encontrada en .env ni en st.secrets")
         genai.configure(api_key=self.api_key)
         
         # Configuraciones de modelos
