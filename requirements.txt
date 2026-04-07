@@ -1,7 +1,7 @@
 streamlit
 pdfplumber
 pymupdf
-google-generativeai
+google-genai
 gspread
 python-dotenv
 pandas
