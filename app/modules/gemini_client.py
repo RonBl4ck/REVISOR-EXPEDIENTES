@@ -1,5 +1,9 @@
-from utils.text_helpers import estimate_tokens
+import os
+import json
+import google.generativeai as genai
+from dotenv import load_dotenv
 import streamlit as st
+from utils.text_helpers import estimate_tokens
 
 # Load env
 load_dotenv()
@@ -13,9 +17,9 @@ class GeminiClient:
             raise ValueError("Error: GOOGLE_API_KEY no encontrada en .env ni en st.secrets")
         genai.configure(api_key=self.api_key)
         
-        # Configuraciones de modelos
-        self.flash_model = genai.GenerativeModel('gemini-1.5-flash')
-        self.pro_model = genai.GenerativeModel('gemini-1.5-pro')
+        # Configuraciones de modelos (Actualizados a 2.5 Flash)
+        self.flash_model = genai.GenerativeModel('gemini-2.5-flash')
+        self.pro_model = genai.GenerativeModel('gemini-2.5-flash')
 
     def analyze_chunk(self, chunk_text, active_rules=None):
         """
