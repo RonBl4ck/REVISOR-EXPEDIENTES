@@ -1,0 +1,9 @@
+streamlit
+pdfplumber
+pymupdf
+google-generativeai
+gspread
+python-dotenv
+pandas
+google-auth
+oauth2client
